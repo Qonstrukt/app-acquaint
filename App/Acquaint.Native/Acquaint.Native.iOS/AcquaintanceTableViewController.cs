@@ -3,27 +3,24 @@ using System.Threading.Tasks;
 using Acquaint.Data;
 using Acquaint.Models;
 using Acquaint.Util;
+using Acquaint.ViewModels;
 using CoreGraphics;
 using Foundation;
+using ReactiveUI;
 using UIKit;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 
 namespace Acquaint.Native.iOS
 {
 	/// <summary>
 	/// Acquaintance table view controller. The layout for this view controller is defined almost entirely in Main.storyboard.
 	/// </summary>
-	public partial class AcquaintanceTableViewController : UITableViewController, IUIViewControllerPreviewingDelegate
+	public partial class AcquaintanceTableViewController : ReactiveTableViewController<AcquaintanceTableViewModel>, IUIViewControllerPreviewingDelegate
 	{
-		/// <summary>
-		/// The acquaintance table view source.
-		/// </summary>
-		readonly AcquaintanceTableViewSource _AcquaintanceTableViewSource;
-
 		// This constructor signature is required, for marshalling between the managed and native instances of this class.
 		public AcquaintanceTableViewController(IntPtr handle) : base(handle)
 		{
-			_AcquaintanceTableViewSource = new AcquaintanceTableViewSource();
-
 			RefreshControl = new UIRefreshControl();
 		}
 
@@ -33,18 +30,37 @@ namespace Acquaint.Native.iOS
 		{
 			base.ViewDidLoad();
 
+			ViewModel = new AcquaintanceTableViewModel();
+
 			SetTableViewProperties();
 
 			// override the back button text for AcquaintanceDetailViewController (the navigated-to view controller)
 			NavigationItem.BackBarButtonItem = new UIBarButtonItem("List", UIBarButtonItemStyle.Plain, null);
 
-			RefreshControl.ValueChanged += async (sender, e) => await RefreshAcquaintances();
+			this.WhenActivated(disposable =>
+			{
+				this.WhenAnyValue(view => view.ViewModel.Acquaintances)
+					.BindTo<AcquaintanceViewModel, AcquaintanceCell>(TableView, (NSString)"AcquaintanceCell", 60, null)
+					.DisposeWith(disposable);
+
+				this.BindCommand(ViewModel, vm => vm.RefreshAcquaintances, view => view.RefreshControl)
+					.DisposeWith(disposable);
+
+				ViewModel.RefreshAcquaintances.IsExecuting
+						 .Where(isExecuting => !isExecuting)
+						 .Subscribe(_ => RefreshControl.EndRefreshing())
+						 .DisposeWith(disposable);
+
+				ViewModel.RefreshAcquaintances.Execute()
+						 .Subscribe()
+						 .DisposeWith(disposable);
+			});
 
 			TableView.AddSubview(RefreshControl);
 		}
 
 		// The ViewDidAppear() override is called after the view has appeared on the screen.
-		public override async void ViewDidAppear(bool animated)
+		public override void ViewDidAppear(bool animated)
 		{
 			base.ViewDidAppear(animated);
 
@@ -54,69 +70,19 @@ namespace Acquaint.Native.iOS
 
 				return;
 			}
-
-			await RefreshAcquaintances();
 		}
 
-		async Task RefreshAcquaintances()
-		{
-			// ! flag to indicate how this refresh command was instantiated.
-			bool triggeredByPullToRefresh = false;
-
-			// Store the original offset of the TableView.
-			var originalOffset = new CGPoint(TableView.ContentOffset.X, TableView.ContentOffset.Y);
-
-			// If
-			if (RefreshControl.Refreshing)
-				triggeredByPullToRefresh = true;
-
-			try
-			{
-				// If this refresh has not been started by a pull-to-refresh UI action, then we need to manually set the tableview offset to SHOW the refresh indicator.
-				if (!triggeredByPullToRefresh)
-					TableView.SetContentOffset(new CGPoint(originalOffset.X, originalOffset.Y - RefreshControl.Frame.Size.Height), true);
-
-				// Starts animating the refreshing indicator, and sets its Refreshing property to true.
-				RefreshControl.BeginRefreshing();
-
-				// request the TableViewSource to load acquaintances
-				await _AcquaintanceTableViewSource.LoadAcquaintances();
-
-				// Tell the TableView to update its UI (reload the cells) because the TableViewSource has updated.
-				TableView.ReloadData();
-			}
-			catch (Exception ex)
-			{
-				System.Diagnostics.Debug.WriteLine($"Error getting acquaintances: {ex.Message}");
-
-				// present an alert about the failure
-				using (var alert = new UIAlertView("Error getting acquaintances", "Ensure you have a network connection, and that a valid backend service URL is present in the app settings.", null, "OK"))
-				{
-					alert.Show();
-				}
-			}
-			finally
-			{
-				// Starts animating the refreshing indicator, and sets its Refreshing property to false.
-				RefreshControl.EndRefreshing();
-
-				// If this refresh has not been started by a pull-to-refresh UI action, then we need to manually set the tableview offset to HIDE the refresh indicator.
-				if (!triggeredByPullToRefresh)
-					TableView.SetContentOffset(originalOffset, true);
-			}
-		}
 
 		/// <summary>
 		/// Sets some table view properties.
 		/// </summary>
 		void SetTableViewProperties()
 		{
-			TableView.Source = _AcquaintanceTableViewSource;
-
 			TableView.AllowsSelection = true;
 
 			TableView.RowHeight = 60;
 		}
+
 
 		// The PrepareForSegue() override is called when a segue has been activated, but before it executes.
 		public override void PrepareForSegue(UIStoryboardSegue segue, NSObject sender)
@@ -125,26 +91,26 @@ namespace Acquaint.Native.iOS
 			// Note that these segues are defined in Main.storyboard.
 			switch (segue.Identifier)
 			{
-			case "NewAcquaintanceSegue":
-				// get the destination viewcontroller from the segue
-				var acquaintanceEditViewController = segue.DestinationViewController as AcquaintanceEditViewController;
-				// instantiate new Acquaintance and assign to viewcontroller
-				acquaintanceEditViewController.Acquaintance = null;
-				break;
-			case "AcquaintanceDetailSegue":
-				// the selected index path
-				var indexPath = TableView.IndexPathForSelectedRow;
-				// the index of the item in the collection that corresponds to the selected cell
-				var itemIndex = indexPath.Row;
-				// get the destination viewcontroller from the segue
-				var acquaintanceDetailViewController = segue.DestinationViewController as AcquaintanceDetailViewController;
-				// if the detaination viewcontrolller is not null
-				if (acquaintanceDetailViewController != null && TableView.Source != null)
-				{
-					// set the acquaintance on the view controller
-					acquaintanceDetailViewController.Acquaintance = ((AcquaintanceTableViewSource)TableView.Source).Acquaintances[itemIndex];
-				}
-				break;
+				case "NewAcquaintanceSegue":
+					// get the destination viewcontroller from the segue
+					var acquaintanceEditViewController = segue.DestinationViewController as AcquaintanceEditViewController;
+					// instantiate new Acquaintance and assign to viewcontroller
+					acquaintanceEditViewController.Acquaintance = null;
+					break;
+				case "AcquaintanceDetailSegue":
+					// the selected index path
+					var indexPath = TableView.IndexPathForSelectedRow;
+					// the index of the item in the collection that corresponds to the selected cell
+					var itemIndex = indexPath.Row;
+					// get the destination viewcontroller from the segue
+					var acquaintanceDetailViewController = segue.DestinationViewController as AcquaintanceDetailViewController;
+					// if the detaination viewcontrolller is not null
+					if (acquaintanceDetailViewController != null && TableView.Source != null)
+					{
+						// set the acquaintance on the view controller
+						acquaintanceDetailViewController.Acquaintance = ViewModel.Acquaintances[indexPath.Row].Acquaintance;
+					}
+					break;
 			}
 		}
 
@@ -191,7 +157,7 @@ namespace Acquaint.Native.iOS
 				return null;
 
 			// set the acquaintance on the view controller
-			detailViewController.Acquaintance = _AcquaintanceTableViewSource.Acquaintances[indexPath.Row];
+			detailViewController.Acquaintance = ViewModel.Acquaintances[indexPath.Row].Acquaintance;
 
 			// set the frame on the screen that will NOT be blurred out during the preview "peek"
 			previewingContext.SourceRect = cell.Frame;

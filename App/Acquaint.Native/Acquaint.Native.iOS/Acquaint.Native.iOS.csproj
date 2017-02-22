@@ -216,6 +216,24 @@
     <Reference Include="Xamarin.iOS" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Reactive.Interfaces">
+      <HintPath>..\..\packages\Rx-Interfaces.2.2.5\lib\portable-windows8+net45+wp8\System.Reactive.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Core">
+      <HintPath>..\..\packages\Rx-Core.2.2.5\lib\portable-windows8+net45+wp8\System.Reactive.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Linq">
+      <HintPath>..\..\packages\Rx-Linq.2.2.5\lib\portable-windows8+net45+wp8\System.Reactive.Linq.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.PlatformServices">
+      <HintPath>..\..\packages\Rx-PlatformServices.2.2.5\lib\portable-windows8+net45+wp8\System.Reactive.PlatformServices.dll</HintPath>
+    </Reference>
+    <Reference Include="Splat">
+      <HintPath>..\..\packages\Splat.1.4.0\lib\Portable-net45+win+wpa81+wp80\Splat.dll</HintPath>
+    </Reference>
+    <Reference Include="ReactiveUI">
+      <HintPath>..\..\packages\reactiveui-core.7.1.0\lib\Xamarin.iOS10\ReactiveUI.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ImageAsset Include="Resources\Images.xcassets\AppIcons.appiconset\Contents.json">
@@ -240,7 +258,6 @@
       <DependentUpon>MainViewController.cs</DependentUpon>
     </Compile>
     <Compile Include="AcquaintanceTableViewController.cs" />
-    <Compile Include="AcquaintanceTableViewSource.cs" />
     <Compile Include="AcquaintanceTableViewController.designer.cs">
       <DependentUpon>AcquaintanceTableViewController.cs</DependentUpon>
     </Compile>
@@ -265,6 +282,7 @@
       <DependentUpon>SetupViewController.cs</DependentUpon>
     </Compile>
     <Compile Include="Extensions\UINavigationControllerExtensions.cs" />
+    <Compile Include="ReactiveUILinkerOverride.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <ItemGroup>
