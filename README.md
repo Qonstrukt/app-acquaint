@@ -1,4 +1,9 @@
-# Acquaint
+# Acquaint with ReactiveUI magic
+
+I've added some ReactiveUI magic to this Xamarin demonstration app for the [2017 Q1 meetup of Dutch Mobile .NET Developers](https://www.meetup.com/Dutch-Mobile-NET-Developers-Group/events/236872259/). This is the accompanying Keynote presentation:
+https://www.icloud.com/keynote/0RmnE1wEhZB-VyRnCMuGreIfA#Intro_to_ReactiveUI
+
+## Original description
 
 A simple Xamarin app named *Acquaint*. The app is a simple list of contacts, each of which can be viewed in a detail screen and modified in an edit screen. It runs on iOS 9+, Android 4.2+, and UWP (mobile and desktop).
 
