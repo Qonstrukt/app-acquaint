@@ -31,7 +31,7 @@ namespace Acquaint.ViewModels
 			Acquaintances = new ReactiveList<AcquaintanceViewModel>();
 
 			RefreshAcquaintances = ReactiveCommand.CreateFromTask(() => GetAcquaintances());
-			RefreshAcquaintances.ThrownExceptions.Subscribe();
+			RefreshAcquaintances.ThrownExceptions.Subscribe(GetAcquaintancesExeceptions);
 			RefreshAcquaintances.Select(list => list.Select(acquaintance => new AcquaintanceViewModel(acquaintance)))
 								.Select(list => new ReactiveList<AcquaintanceViewModel>(list))
 								// .BindTo (this, vm => vm.Acquaintances);
